@@ -826,6 +826,7 @@ class FiguraEmpatia {
     this.arrastrando = false; this.lastTouchAngle = null; 
     this.floatSeedX = random(TWO_PI); this.floatSeedY = random(TWO_PI);
     this.escala = 1.0;
+    
     this.vAngulo = 0; 
   }
 
@@ -864,25 +865,38 @@ class FiguraEmpatia {
 
     let h = this.tam * (sqrt(3)/2); 
     let colHex = COLORES[this.colorIndex];
+    
+    // Nueva variable: define el tamaño del segmento central corto
+    let lCentro = this.tam * 0.2; 
 
     if (this.estilo === 0) {
+      // ACTOR B (Azul Lleno)
       fill(colHex); noStroke(); drawingContext.setLineDash([]); 
       triangle(0, -h*(2/3), -this.tam/2, h*(1/3), this.tam/2, h*(1/3)); 
-      stroke("#F4F0EB"); strokeWeight(3); drawingContext.setLineDash([]); 
-      line(0, -h*(2/3), 0, h*(1/3));
+      
+      // Línea central corta, apenas más gruesa (4) para resaltar sobre el fondo sólido
+      stroke("#F4F0EB"); strokeWeight(4); drawingContext.setLineDash([]); 
+      line(0, -lCentro, 0, lCentro);
     } 
     else if (this.estilo === 1) {
+      // ACTOR A (Negro Contorno)
       noFill(); stroke(colHex); strokeWeight(3); drawingContext.setLineDash([]); 
       triangle(0, -h*(2/3), -this.tam/2, h*(1/3), this.tam/2, h*(1/3)); 
-      stroke(colHex); strokeWeight(2); 
-      line(0, -h*(2/3), 0, h*(1/3));
+      
+      // Línea central corta, fina estándar (2)
+      stroke(colHex); strokeWeight(2); drawingContext.setLineDash([]); 
+      line(0, -lCentro, 0, lCentro);
     } 
     else if (this.estilo === 2) {
+      // ACTOR C (Rojo Punteado)
       noFill(); stroke(colHex); strokeWeight(3); drawingContext.setLineDash([15, 15]); 
       triangle(0, -h*(2/3), -this.tam/2, h*(1/3), this.tam/2, h*(1/3)); 
-      drawingContext.setLineDash([]); stroke(colHex); strokeWeight(2); 
-      line(0, -h*(2/3), 0, h*(1/3));
+      
+      // Línea central corta y PUNTEADA (con guiones más chicos para que se noten en la línea corta)
+      stroke(colHex); strokeWeight(2); drawingContext.setLineDash([6, 6]); 
+      line(0, -lCentro, 0, lCentro);
     }
+    
     pop(); 
   }
 
