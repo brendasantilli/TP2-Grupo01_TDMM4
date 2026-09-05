@@ -213,9 +213,9 @@ class SistemaPrincipal {
 // --- CLASES BÁSICAS Y ESTILOS ---
 function aplicarEstilo(colorHex, estilo, opacidad = 255) {
   let c = color(colorHex); c.setAlpha(opacidad);
-  if (estilo === 0) { fill(c); noStroke(); drawingContext.setLineDash([]); } 
-  else if (estilo === 1) { noFill(); stroke(c); strokeWeight(3); drawingContext.setLineDash([]); } 
-  else if (estilo === 2) { noFill(); stroke(c); strokeWeight(3); drawingContext.setLineDash([15, 15]); }
+  if (estilo === 0) { fill(c); noStroke(); drawingContext.setLineDash([]); } //azules
+  else if (estilo === 1) { noFill(); stroke(c); strokeWeight(8); drawingContext.setLineDash([]); } // negros 
+  else if (estilo === 2) { noFill(); stroke(c); strokeWeight(3); drawingContext.setLineDash([15, 15]); } //rojos
 }
 
 class Cuadrado {
@@ -295,9 +295,9 @@ class ConceptoMemoria {
         noFill(); 
         
         if (r.id === 0) { 
-          stroke(26, 26, 26, r.opacidad); strokeWeight(3); drawingContext.setLineDash([]); 
+          stroke(26, 26, 26, r.opacidad); strokeWeight(8); drawingContext.setLineDash([]); //negro
         } else if (r.id === 1) { 
-          stroke(22, 78, 150, r.opacidad); strokeWeight(25); drawingContext.setLineDash([]); 
+          stroke(22, 78, 150, r.opacidad); strokeWeight(25); drawingContext.setLineDash([]); //azul
         } else if (r.id === 2) { 
           stroke(212, 42, 42, r.opacidad); strokeWeight(3); drawingContext.setLineDash([15, 15]); 
         }
@@ -482,7 +482,7 @@ class FiguraCaduca {
       square(0, 0, this.tamOriginal); 
     } 
     else if (this.estilo === 1) { 
-      noFill(); stroke(r[0], r[1], r[2], 255); strokeWeight(3); drawingContext.setLineDash([]); 
+      noFill(); stroke(r[0], r[1], r[2], 255); strokeWeight(8); drawingContext.setLineDash([]); 
       let tamActual = map(this.salud, 0, 255, 0, this.tamOriginal);
       square(0, 0, tamActual); 
     } 
@@ -568,250 +568,158 @@ class ConceptoCaducidad {
 // SUBSISTEMA 2 (PRESENTE)
 // =========================================================
 
-// --- CONCEPTO 4: IDENTIDAD / PRESENCIA ---
 class ConceptoIdentidad {
   constructor() {
     this.tB = min(width, height) * 0.35;
-    
     this.posInicio = createVector(width / 2, height / 2);
     this.posEsquina = createVector(width * 0.25, height * 0.25);
     this.tamBase = this.tB * 1.35; 
-    
+    this.offsetId = random(TWO_PI); // Identificador para la oscilación
     this.reset();
   }
-
   reset() {
-    this.fase = 0; 
-    this.tiempoMuerte = 0;
-    this.tiempoInicio = millis(); 
-
-    this.x = this.posInicio.x;
-    this.y = this.posInicio.y;
-    this.targetX = this.posInicio.x;
-    this.targetY = this.posInicio.y;
-    
-    this.escala = 1.0;
-    this.opacidad = 255;
-    this.anguloAzul = 0; 
-    
-    this.tiempoEfecto = 0; 
-    this.presionado = false;
-
+    this.fase = 0; this.tiempoMuerte = 0; this.tiempoInicio = millis(); 
+    this.x = this.posInicio.x; this.y = this.posInicio.y;
+    this.targetX = this.posInicio.x; this.targetY = this.posInicio.y;
+    this.escala = 1.0; this.opacidad = 255; this.anguloAzul = 0; 
+    this.tiempoEfecto = 0; this.presionado = false;
     let offset1 = createVector(-width * 0.3, height * 0.3);
     let offset2 = createVector(width * 0.35, -height * 0.25);
-
     this.atacantes = [
       { id: 1, offset: offset1, x: this.x + offset1.x, y: this.y + offset1.y, tamBase: this.tB * 0.75, tamMinimo: this.tB * 0.50, tam: this.tB * 0.75, cooldown: 0, angulo: 0 },
       { id: 2, offset: offset2, x: this.x + offset2.x, y: this.y + offset2.y, tamBase: this.tB * 0.95, tamMinimo: this.tB * 0.60, tam: this.tB * 0.95, cooldown: 0, angulo: -HALF_PI }
     ];
   }
-
   update() {
     let vel = 0.15; 
-
     if (this.fase === 0) {
       if (this.opacidad <= 0 || this.escala <= 0) {
-        this.fase = 1;
-        this.tiempoMuerte = millis();
-        return; 
+        this.fase = 1; this.tiempoMuerte = millis(); return; 
       }
-
       let tiempoTranscurrido = millis() - this.tiempoInicio;
-
       if (tiempoTranscurrido < 1500) {
-        this.targetX = this.posInicio.x;
-        this.targetY = this.posInicio.y;
-        this.x = this.posInicio.x;
-        this.y = this.posInicio.y;
-        return; 
+        this.targetX = this.posInicio.x; this.targetY = this.posInicio.y;
+        this.x = this.posInicio.x; this.y = this.posInicio.y; return; 
       }
-
       let enApunte = tiempoTranscurrido < 2500;
-
-      for (let a of this.atacantes) {
-        if (a.cooldown > 0) a.cooldown--;
-      }
-
+      for (let a of this.atacantes) if (a.cooldown > 0) a.cooldown--;
       let activo = this.presionado || this.tiempoEfecto > 0;
-
       if (activo) {
-        if (!this.presionado && this.tiempoEfecto > 0) {
-          this.tiempoEfecto--; 
-        }
-
-        this.escala = min(1.35, this.escala + 0.02);
-        this.opacidad = min(255, this.opacidad + 10);
-        
-        this.targetX = this.posInicio.x;
-        this.targetY = this.posInicio.y;
-
+        if (!this.presionado && this.tiempoEfecto > 0) this.tiempoEfecto--; 
+        this.escala = min(1.35, this.escala + 0.02); this.opacidad = min(255, this.opacidad + 10);
+        this.targetX = this.posInicio.x; this.targetY = this.posInicio.y;
         let distanciaSegura = (this.tamBase * this.escala) * 1.1;
-
         for (let a of this.atacantes) {
           a.cooldown = 0; 
-          
           let posAnclajeActual = createVector(this.x + a.offset.x, this.y + a.offset.y);
           let dirAnclaje = p5.Vector.sub(posAnclajeActual, createVector(this.x, this.y)).normalize();
           let posDestinoSegura = p5.Vector.add(createVector(this.x, this.y), p5.Vector.mult(dirAnclaje, distanciaSegura));
-          
-          a.x = lerp(a.x, posDestinoSegura.x, vel); 
-          a.y = lerp(a.y, posDestinoSegura.y, vel);
-
+          a.x = lerp(a.x, posDestinoSegura.x, vel); a.y = lerp(a.y, posDestinoSegura.y, vel);
           let targetAngle = atan2(this.y - a.y, this.x - a.x) + HALF_PI;
           a.angulo = this.lerpAngle(a.angulo, targetAngle, vel);
-          
           a.tam = lerp(a.tam, a.tamMinimo, vel);
         }
-
       } else {
-        let posAzul = createVector(this.x, this.y);
-        let siendoAtacado = false;
-
+        let posAzul = createVector(this.x, this.y); let siendoAtacado = false;
         for (let a of this.atacantes) {
           let posAnclajeActual = createVector(this.x + a.offset.x, this.y + a.offset.y);
           let posAtacante = createVector(a.x, a.y);
-          
-          let dir = p5.Vector.sub(posAzul, posAtacante);
-          let distAtaque = dir.mag();
-          
-          let tamAzul = this.tamBase * this.escala;
-          let tamAtacante = a.tam;
-          let distanciaColision;
-          let distPuntaAtacante = tamAtacante * 0.57735;
-
+          let dir = p5.Vector.sub(posAzul, posAtacante); let distAtaque = dir.mag();
+          let tamAzul = this.tamBase * this.escala; let tamAtacante = a.tam;
+          let distanciaColision; let distPuntaAtacante = tamAtacante * 0.57735;
           if (a.id === 1) {
-            let distBaseAzul = tamAzul * 0.28867;
-            distanciaColision = distBaseAzul + distPuntaAtacante;
+            let distBaseAzul = tamAzul * 0.28867; distanciaColision = distBaseAzul + distPuntaAtacante;
           } else {
-            let distLadoAzul = tamAzul * 0.33333;
-            distanciaColision = distLadoAzul + distPuntaAtacante;
+            let distLadoAzul = tamAzul * 0.33333; distanciaColision = distLadoAzul + distPuntaAtacante;
           }
-
           let targetAngle = atan2(this.y - a.y, this.x - a.x) + HALF_PI;
           a.angulo = this.lerpAngle(a.angulo, targetAngle, vel);
-          
           a.tam = lerp(a.tam, a.tamBase, vel * 0.5);
-
           if (a.cooldown === 0) {
             if (enApunte) {
-              a.x = lerp(a.x, posAnclajeActual.x, vel);
-              a.y = lerp(a.y, posAnclajeActual.y, vel);
+              a.x = lerp(a.x, posAnclajeActual.x, vel); a.y = lerp(a.y, posAnclajeActual.y, vel);
             } else {
               if (distAtaque > distanciaColision) {
-                a.x = lerp(a.x, posAzul.x, vel * 1.5);
-                a.y = lerp(a.y, posAzul.y, vel * 1.5);
+                a.x = lerp(a.x, posAzul.x, vel * 1.5); a.y = lerp(a.y, posAzul.y, vel * 1.5);
               } else {
                 siendoAtacado = true;
-                this.escala = max(0, this.escala * 0.96); 
-                this.opacidad = max(0, this.opacidad - 12.0); 
-                
+                this.escala = max(0, this.escala * 0.96); this.opacidad = max(0, this.opacidad - 12.0); 
                 let dirRebote = dir.copy().normalize().mult(-15);
-                a.x += dirRebote.x;
-                a.y += dirRebote.y;
-                
-                a.cooldown = 15; 
+                a.x += dirRebote.x; a.y += dirRebote.y; a.cooldown = 15; 
               }
             }
           } else {
-            a.x = lerp(a.x, posAnclajeActual.x, vel);
-            a.y = lerp(a.y, posAnclajeActual.y, vel);
+            a.x = lerp(a.x, posAnclajeActual.x, vel); a.y = lerp(a.y, posAnclajeActual.y, vel);
           }
         }
-
         if (siendoAtacado) {
           this.targetX = lerp(this.targetX, this.posEsquina.x, 0.4);
           this.targetY = lerp(this.targetY, this.posEsquina.y, 0.4);
         }
       }
-      
-      this.x = lerp(this.x, this.targetX, vel);
-      this.y = lerp(this.y, this.targetY, vel);
-      
+      this.x = lerp(this.x, this.targetX, vel); this.y = lerp(this.y, this.targetY, vel);
     } else if (this.fase === 1) {
-      if (millis() - this.tiempoMuerte > 2000) {
-        this.reset();
-        return;
-      }
-      
+      if (millis() - this.tiempoMuerte > 2000) { this.reset(); return; }
       for (let a of this.atacantes) {
         let posAnclajeCalma = createVector(this.posInicio.x + a.offset.x, this.posInicio.y + a.offset.y);
-        
-        a.x = lerp(a.x, posAnclajeCalma.x, vel);
-        a.y = lerp(a.y, posAnclajeCalma.y, vel);
-        
+        a.x = lerp(a.x, posAnclajeCalma.x, vel); a.y = lerp(a.y, posAnclajeCalma.y, vel);
         let targetAngle = atan2(this.posInicio.y - a.y, this.posInicio.x - a.x) + HALF_PI;
         a.angulo = this.lerpAngle(a.angulo, targetAngle, vel);
-        
         a.tam = lerp(a.tam, a.tamBase, vel * 0.5);
       }
     }
   }
-
   lerpAngle(a, b, t) {
     let diff = b - a;
     while (diff < -PI) diff += TWO_PI;
     while (diff > PI) diff -= TWO_PI;
     return a + diff * t;
   }
-
   display() {
     if (this.fase === 0 && this.opacidad > 0 && this.escala > 0) {
-      push(); translate(this.x, this.y); rotate(radians(this.anguloAzul)); scale(this.escala);
+      // Oscilación muy suave (flotación leve de ±4 píxeles)
+      let ox = (this.presionado || this.tiempoEfecto > 0) ? 0 : sin(millis() * 0.0008 + this.offsetId) * 9;
+      let oy = (this.presionado || this.tiempoEfecto > 0) ? 0 : cos(millis() * 0.001 + this.offsetId) * 9;
+
+      push(); 
+      translate(this.x + ox, this.y + oy); 
+      rotate(radians(this.anguloAzul)); 
+      scale(this.escala);
       aplicarEstilo(COLORES[1], 0, this.opacidad);
       let r = this.tamBase / 2;
       let x1 = r * cos(-HALF_PI); let y1 = r * sin(-HALF_PI);
       let x2 = r * cos(-HALF_PI + TWO_PI / 3); let y2 = r * sin(-HALF_PI + TWO_PI / 3);
       let x3 = r * cos(-HALF_PI + 2 * TWO_PI / 3); let y3 = r * sin(-HALF_PI + 2 * TWO_PI / 3);
-      triangle(x1, y1, x2, y2, x3, y3);
+      triangle(x1, y1, x2, y2, x3, y3); 
       pop();
     }
-
     let aRojo = this.atacantes.find(a => a.id === 2);
     if (aRojo) {
-      push(); translate(aRojo.x, aRojo.y); rotate(aRojo.angulo);
-      aplicarEstilo(COLORES[2], 2);
+      push(); translate(aRojo.x, aRojo.y); rotate(aRojo.angulo); aplicarEstilo(COLORES[2], 2);
       let rA = aRojo.tam / 2;
       let ax1 = rA * cos(-HALF_PI); let ay1 = rA * sin(-HALF_PI);
       let ax2 = rA * cos(-HALF_PI + TWO_PI / 3); let ay2 = rA * sin(-HALF_PI + TWO_PI / 3);
       let ax3 = rA * cos(-HALF_PI + 2 * TWO_PI / 3); let ay3 = rA * sin(-HALF_PI + 2 * TWO_PI / 3);
-      triangle(ax1, ay1, ax2, ay2, ax3, ay3);
-      pop();
+      triangle(ax1, ay1, ax2, ay2, ax3, ay3); pop();
     }
-    
     let aNegro = this.atacantes.find(a => a.id === 1);
     if (aNegro) {
-      push(); translate(aNegro.x, aNegro.y); rotate(aNegro.angulo);
-      aplicarEstilo(COLORES[0], 1); 
+      push(); translate(aNegro.x, aNegro.y); rotate(aNegro.angulo); aplicarEstilo(COLORES[0], 1); 
       let rA = aNegro.tam / 2;
       let ax1 = rA * cos(-HALF_PI); let ay1 = rA * sin(-HALF_PI);
       let ax2 = rA * cos(-HALF_PI + TWO_PI / 3); let ay2 = rA * sin(-HALF_PI + TWO_PI / 3);
       let ax3 = rA * cos(-HALF_PI + 2 * TWO_PI / 3); let ay3 = rA * sin(-HALF_PI + 2 * TWO_PI / 3);
-      triangle(ax1, ay1, ax2, ay2, ax3, ay3);
-      pop();
+      triangle(ax1, ay1, ax2, ay2, ax3, ay3); pop();
     }
   }
-
   presionar(tx, ty) {
     if (this.fase !== 0 || millis() - this.tiempoInicio < 1500) return; 
-
     let r = max((this.tamBase * this.escala) / 2, 40);
-    if (dist(tx, ty, this.x, this.y) < r) {
-      this.presionado = true;
-      this.tiempoEfecto = 45; 
-    }
+    if (dist(tx, ty, this.x, this.y) < r) { this.presionado = true; this.tiempoEfecto = 45; }
   }
-
   arrastrar(tx, ty) {
-    if (this.fase !== 0 || millis() - this.tiempoInicio < 1500) return;
-
-    if (this.presionado) {
-      let r = max((this.tamBase * this.escala) / 2, 60);
-      if (dist(tx, ty, this.x, this.y) > r * 2) {
-        this.presionado = false;
-      }
-    }
+    if (this.presionado) { this.tiempoEfecto = 45; }
   }
-
   soltar() {
     this.presionado = false;
   }
@@ -826,7 +734,6 @@ class FiguraEmpatia {
     this.arrastrando = false; this.lastTouchAngle = null; 
     this.floatSeedX = random(TWO_PI); this.floatSeedY = random(TWO_PI);
     this.escala = 1.0;
-    
     this.vAngulo = 0; 
   }
 
@@ -851,7 +758,7 @@ class FiguraEmpatia {
     if (this.y < m || this.y > height - m) { this.vy *= -1; this.y = constrain(this.y, m, height - m); } 
   }
 
-  display() {
+   display() {
     push();
     let offX = 0; let offY = 0;
     if (!this.arrastrando) {
@@ -865,38 +772,34 @@ class FiguraEmpatia {
 
     let h = this.tam * (sqrt(3)/2); 
     let colHex = COLORES[this.colorIndex];
-    
-    // Nueva variable: define el tamaño del segmento central corto
-    let lCentro = this.tam * 0.2; 
+    let startY = -h * (2/3);
 
+    // 1. Dibujo del polígono base según el estilo
     if (this.estilo === 0) {
-      // ACTOR B (Azul Lleno)
+      // AZUL: Lleno
       fill(colHex); noStroke(); drawingContext.setLineDash([]); 
-      triangle(0, -h*(2/3), -this.tam/2, h*(1/3), this.tam/2, h*(1/3)); 
-      
-      // Línea central corta, apenas más gruesa (4) para resaltar sobre el fondo sólido
-      stroke("#F4F0EB"); strokeWeight(4); drawingContext.setLineDash([]); 
-      line(0, -lCentro, 0, lCentro);
+      triangle(0, startY, -this.tam/2, h*(1/3), this.tam/2, h*(1/3)); 
     } 
     else if (this.estilo === 1) {
-      // ACTOR A (Negro Contorno)
+      // NEGRO: Contorno
       noFill(); stroke(colHex); strokeWeight(3); drawingContext.setLineDash([]); 
-      triangle(0, -h*(2/3), -this.tam/2, h*(1/3), this.tam/2, h*(1/3)); 
-      
-      // Línea central corta, fina estándar (2)
-      stroke(colHex); strokeWeight(2); drawingContext.setLineDash([]); 
-      line(0, -lCentro, 0, lCentro);
+      triangle(0, startY, -this.tam/2, h*(1/3), this.tam/2, h*(1/3)); 
     } 
     else if (this.estilo === 2) {
-      // ACTOR C (Rojo Punteado)
+      // ROJO: Punteado
       noFill(); stroke(colHex); strokeWeight(3); drawingContext.setLineDash([15, 15]); 
-      triangle(0, -h*(2/3), -this.tam/2, h*(1/3), this.tam/2, h*(1/3)); 
-      
-      // Línea central corta y PUNTEADA (con guiones más chicos para que se noten en la línea corta)
-      stroke(colHex); strokeWeight(2); drawingContext.setLineDash([6, 6]); 
-      line(0, -lCentro, 0, lCentro);
+      triangle(0, startY, -this.tam/2, h*(1/3), this.tam/2, h*(1/3)); 
     }
+
+    // 2. Eje direccional: SIEMPRE negro, continuo y sobresaliendo de los límites
+    drawingContext.setLineDash([]); 
+    stroke(COLORES[0]); // Negro constructivista
+    strokeWeight(2); // Ligeramente más fino que el borde para mayor elegancia
     
+    // Calculamos una extensión para que la línea salga del triángulo
+    let extension = h * 0.25; 
+    line(0, -h*(2/3) - extension, 0, h*(1/3) + extension);
+
     pop(); 
   }
 
@@ -1106,7 +1009,8 @@ class ConceptoEmpatia {
   }
 }
 
-// --- CONCEPTO 6: COLABORACIÓN ---
+//
+//COLABORACIONNN
 class ConceptoColaboracion {
   constructor() {
     this.tB = min(width, height) * 0.35;
@@ -1121,16 +1025,18 @@ class ConceptoColaboracion {
     this.a = {
       x: width * 0.25, y: height * 0.45,
       targetX: width * 0.25, targetY: height * 0.45,
+      inicioX: width * 0.25, inicioY: height * 0.45,
       arrastrando: false, floatOffset: random(TWO_PI), lastTx: 0, lastTy: 0
     };
 
-    this.b = { x: width * 0.6, y: height * 0.3 };
+    this.b = { x: width * 0.60, y: height * 0.45 };
     this.centroFusionX = this.b.x;
     this.centroFusionY = this.b.y;
 
     this.c = {
-      x: width * 0.8, y: height * 0.6,
-      targetX: width * 0.8, targetY: height * 0.6,
+      x: width * 0.85, y: height * 0.45,
+      targetX: width * 0.85, targetY: height * 0.45,
+      inicioX: width * 0.85, inicioY: height * 0.45,
       arrastrando: false, floatOffset: random(TWO_PI), lastTx: 0, lastTy: 0
     };
 
@@ -1140,7 +1046,8 @@ class ConceptoColaboracion {
     let H = L * (sqrt(3) / 2); 
     let l = L / N; let h = H / N; 
 
-    for (let r = 0; r < N; r++) {
+    let index = 0;
+    for (let r = N - 1; r >= 0; r--) {
       for (let i = 0; i <= 2 * r; i++) {
         let invertido = (i % 2 !== 0); 
         let X = -r * (l / 2) + i * (l / 2);
@@ -1148,6 +1055,7 @@ class ConceptoColaboracion {
         let xBase = X; let yBase_rel = Y - (H * 2 / 3);
         
         this.particulas.push({
+          id: index++,
           xBase: xBase, yBase: yBase_rel,
           x: this.b.x + xBase, y: this.b.y + yBase_rel,
           vx: 0, vy: 0, invertido: invertido, fila: r, angulo: 0, desprendida: false, enPiso: false
@@ -1159,34 +1067,98 @@ class ConceptoColaboracion {
   }
 
   update() {
-    let vel = 0.15; 
+    let vel = 0.08; 
     let pisoY = height - this.tB * 0.5; 
 
     if (this.fase === 0) {
-      if (millis() - this.tiempoInicio > 1500) this.fase = 1;
+      // 1. INICIO ACELERADO A LOS 0.1 SEGUNDOS (100 ms)
+      if (millis() - this.tiempoInicio > 500) this.fase = 1;
       for (let p of this.particulas) { p.x = this.b.x + p.xBase; p.y = this.b.y + p.yBase; }
     }
 
     if (this.fase === 1) {
       this.centroFusionX = (this.a.x + this.c.x) / 2;
       this.centroFusionY = (this.a.y + this.c.y) / 2;
-      
-      let distAC = dist(this.a.x, this.a.y, this.c.x, this.c.y);
-      let umbralMax = width * 0.5;   
-      let umbralMin = this.tB * 1.5; 
-      
-      let factorAgrupar = map(distAC, umbralMax, umbralMin, 0, 1, true); 
-      let tiempoEnFase1 = millis() - this.tiempoInicio - 1500;
+
+      // Geometría y dimensiones
+      let baseA = this.tB * 0.75;
+      let hA = baseA * (sqrt(3)/2);
+      let baseC = this.tB * 0.95;
+      let hC = baseC * (sqrt(3)/2);
+
+      let medioAnchoAzul = (this.tB * 1.20) / 2;
+
+      // Vértices de contacto reales en pantalla
+      let verticeAX = this.a.x + baseA / 2; // Punta inferior derecha (Negro)
+      let verticeAY = this.a.y + hA * (1 / 3);
+
+      let verticeCX = this.c.x - baseC / 2; // Punta inferior izquierda (Rojo)
+      let verticeCY = this.c.y + hC * (1 / 3);
+
+      let distVertices = dist(verticeAX, verticeAY, verticeCX, verticeCY);
+
+      let despA = dist(this.a.x, this.a.y, this.a.inicioX, this.a.inicioY);
+      let despC = dist(this.c.x, this.c.y, this.c.inicioX, this.c.inicioY);
+      let movA = despA >= 2;
+      let movC = despC >= 2;
+
+      // Detección de contacto con los bordes exteriores azules
+      let tocaA = verticeAX >= (this.b.x - medioAnchoAzul);
+      let tocaC = verticeCX <= (this.b.x + medioAnchoAzul);
+
+      // --- REGLA 1: BLOQUEO UNILATERAL (CONGELAMIENTO EN EL BORDE) ---
+
+      // Si C (Rojo) toca lo azul pero A (Negro) aún NO tocó su lado:
+      if (tocaC && !tocaA) {
+        let limiteRojo = (this.b.x + medioAnchoAzul) + (baseC / 2);
+        this.c.targetX = max(this.c.targetX, limiteRojo);
+        this.c.x = max(this.c.x, limiteRojo); // Freno inmediato sobre 'x' sin inercia
+      }
+
+      // Si A (Negro) toca lo azul pero C (Rojo) aún NO tocó su lado:
+      if (tocaA && !tocaC) {
+        let limiteNegro = (this.b.x - medioAnchoAzul) - (baseA / 2);
+        this.a.targetX = min(this.a.targetX, limiteNegro);
+        this.a.x = min(this.a.x, limiteNegro); // Freno inmediato sobre 'x' sin inercia
+      }
+
+      // --- REGLA 2: LÍMITE ABSOLUTO EN EL CENTRO ---
+      // El vértice izquierdo del Rojo NUNCA puede sobrepasar el centro (this.b.x)
+      if (this.c.targetX - baseC / 2 < this.b.x) {
+        this.c.targetX = this.b.x + baseC / 2;
+      }
+      // El vértice derecho del Negro NUNCA puede sobrepasar el centro (this.b.x)
+      if (this.a.targetX + baseA / 2 > this.b.x) {
+        this.a.targetX = this.b.x - baseA / 2;
+      }
+
+      // --- RECONSTRUCCIÓN Y CAÍDA DE PARTÍCULAS ---
+      let ambosTocanYSeMueven = movA && movC && tocaA && tocaC;
+
+      let maxDistVert = width * 0.5;
+      let factorAproximacion = constrain(map(distVertices, maxDistVert, 15, 0, 1), 0, 1);
+
+      let totalParti = this.particulas.length;
+      let numFormadas = 0;
+
+      if (ambosTocanYSeMueven) {
+        numFormadas = floor(totalParti * factorAproximacion);
+      }
+
+      let tiempoEnFase1 = millis() - this.tiempoInicio - 500;
 
       for (let p of this.particulas) {
-        if (factorAgrupar > 0) {
+        let seConstruye = (p.id < numFormadas);
+
+        if (seConstruye) {
           let targetX = this.centroFusionX + p.xBase;
           let targetY = this.centroFusionY + p.yBase;
 
-          p.x = lerp(p.x, targetX, vel * 0.8); p.y = lerp(p.y, targetY, vel * 0.8);
-          p.angulo = lerp(p.angulo, 0, vel * 0.8);
+          p.x = lerp(p.x, targetX, vel); 
+          p.y = lerp(p.y, targetY, vel);
+          p.angulo = lerp(p.angulo, 0, vel);
         } else {
-          let delayCaida = (4 - p.fila) * 150; 
+          let delayCaida = (4 - p.fila) * 80; 
           
           if (tiempoEnFase1 > delayCaida && !p.desprendida) { p.desprendida = true; p.vx = random(-1.5, 1.5); }
           if (p.desprendida && !p.enPiso) {
@@ -1197,7 +1169,7 @@ class ConceptoColaboracion {
         }
       }
 
-      if (distAC < umbralMin) {
+      if (distVertices < 20 && ambosTocanYSeMueven) {
         this.fase = 2;
         this.fusionTimer = millis();
       }
@@ -1211,9 +1183,9 @@ class ConceptoColaboracion {
       for (let p of this.particulas) {
         let targetX = this.centroFusionX + p.xBase * this.escalaTriunfo;
         let targetY = this.centroFusionY + p.yBase * this.escalaTriunfo;
-        p.x = lerp(p.x, targetX, vel * 0.8);
-        p.y = lerp(p.y, targetY, vel * 0.8);
-        p.angulo = lerp(p.angulo, 0, vel * 0.8);
+        p.x = lerp(p.x, targetX, vel);
+        p.y = lerp(p.y, targetY, vel);
+        p.angulo = lerp(p.angulo, 0, vel);
       }
 
       this.a.targetX = width * 0.35; this.c.targetX = width * 0.65;
@@ -1222,12 +1194,17 @@ class ConceptoColaboracion {
       if (millis() - this.fusionTimer > 3000) { this.reset(); }
     }
 
+    // Suavizado de movimiento con lerp
     this.a.x = lerp(this.a.x, this.a.targetX, vel); this.a.y = lerp(this.a.y, this.a.targetY, vel);
     this.c.x = lerp(this.c.x, this.c.targetX, vel); this.c.y = lerp(this.c.y, this.c.targetY, vel);
 
-    let margin = this.tB * 0.6;
-    this.a.targetX = constrain(this.a.targetX, margin, width - margin); this.a.targetY = constrain(this.a.targetY, margin, height - margin);
-    this.c.targetX = constrain(this.c.targetX, margin, width - margin); this.c.targetY = constrain(this.c.targetY, margin, height - margin);
+    // Límites de pantalla generales
+    let margin = this.tB * 0.4;
+    this.a.targetX = constrain(this.a.targetX, margin, width - margin);
+    this.a.targetY = constrain(this.a.targetY, margin, height - margin);
+
+    this.c.targetX = constrain(this.c.targetX, margin, width - margin);
+    this.c.targetY = constrain(this.c.targetY, margin, height - margin);
   }
 
   display() {
@@ -1318,7 +1295,6 @@ class ConceptoColaboracion {
     this.c.arrastrando = false;
   }
 }
-
 // =========================================================
 // SUBSISTEMA 3 (FUTURO)
 // =========================================================
@@ -1426,24 +1402,44 @@ class ConceptoAnsiedad {
   }
   
   reset() {
+    let tamInicial = this.tB * 2.5;
+    let radio = tamInicial / 2;
+
+    // MARGENES STRICTOS: 
+    // Aseguran que todo el borde del círculo quede dentro de la pantalla (0% tapado)
+    let minX = radio;
+    let maxX = width - radio;
+    let minY = radio;
+    let maxY = height - radio;
+
     if (this.primerIntento) {
-      this.cx = width / 2; this.cy = height / 2; this.primerIntento = false;
+      this.cx = width / 2; 
+      this.cy = height / 2; 
+      this.primerIntento = false;
     } else {
-      this.cx = random(width * 0.25, width * 0.75); this.cy = random(height * 0.25, height * 0.75);
+      // Si el tamaño del círculo es mayor a la pantalla, se centra
+      this.cx = (maxX > minX) ? random(minX, maxX) : width / 2; 
+      this.cy = (maxY > minY) ? random(minY, maxY) : height / 2;
     }
 
-    this.b = new Circulo(this.cx, this.cy, this.tB * 2.5, COLORES[1], 0); 
-    this.a = new Circulo(this.cx - this.tB * 0.3, this.cy, this.tB * 0.35, COLORES[0], 1); this.a.idActor = 0;
-    this.c = new Circulo(this.cx + this.tB * 0.3, this.cy, this.tB * 0.45, COLORES[2], 2); this.c.idActor = 2;
+    this.b = new Circulo(this.cx, this.cy, tamInicial, COLORES[1], 0); 
+    this.a = new Circulo(this.cx - this.tB * 0.3, this.cy, this.tB * 0.35, COLORES[0], 1); 
+    this.a.idActor = 0;
+    this.c = new Circulo(this.cx + this.tB * 0.3, this.cy, this.tB * 0.45, COLORES[2], 2); 
+    this.c.idActor = 2;
     
     let speed = min(width, height) * 0.005; 
     let angA = random(TWO_PI);
-    this.a.vx = cos(angA) * speed; this.a.vy = sin(angA) * speed;
+    this.a.vx = cos(angA) * speed; 
+    this.a.vy = sin(angA) * speed;
     
     let angC = random(TWO_PI);
-    this.c.vx = cos(angC) * speed; this.c.vy = sin(angC) * speed;
+    this.c.vx = cos(angC) * speed; 
+    this.c.vy = sin(angC) * speed;
     
-    this.fase = 0; this.timeStart = millis(); this.deadTime = 0;
+    this.fase = 0; 
+    this.timeStart = millis(); 
+    this.deadTime = 0;
   }
   
   update() {
@@ -1453,20 +1449,32 @@ class ConceptoAnsiedad {
       this.b.tam -= shrinkRate;
       
       if (this.b.tam <= 0) {
-        this.b.tam = 0; this.fase = 1; this.deadTime = millis();
+        this.b.tam = 0; 
+        this.fase = 1; 
+        this.deadTime = millis();
       } else {
-        let dx = this.c.x - this.a.x; let dy = this.c.y - this.a.y;
-        let distAC = sqrt(dx*dx + dy*dy); let minF = (this.a.tam / 2 + this.c.tam / 2);
+        let dx = this.c.x - this.a.x; 
+        let dy = this.c.y - this.a.y;
+        let distAC = sqrt(dx*dx + dy*dy); 
+        let minF = (this.a.tam / 2 + this.c.tam / 2);
         
         if (distAC < minF && distAC > 0) {
-          let nx = dx / distAC; let ny = dy / distAC; let overlap = minF - distAC;
-          this.a.x -= nx * overlap / 2; this.a.y -= ny * overlap / 2;
-          this.c.x += nx * overlap / 2; this.c.y += ny * overlap / 2;
-          let auxVx = this.a.vx; let auxVy = this.a.vy;
-          this.a.vx = this.c.vx; this.a.vy = this.c.vy; 
-          this.c.vx = auxVx; this.c.vy = auxVy;
+          let nx = dx / distAC; 
+          let ny = dy / distAC; 
+          let overlap = minF - distAC;
+          this.a.x -= nx * overlap / 2; 
+          this.a.y -= ny * overlap / 2;
+          this.c.x += nx * overlap / 2; 
+          this.c.y += ny * overlap / 2;
+          let auxVx = this.a.vx; 
+          let auxVy = this.a.vy;
+          this.a.vx = this.c.vx; 
+          this.a.vy = this.c.vy; 
+          this.c.vx = auxVx; 
+          this.c.vy = auxVy;
         }
-        this.updateInner(this.a); this.updateInner(this.c);
+        this.updateInner(this.a); 
+        this.updateInner(this.c);
       }
     } else if (this.fase === 1) {
       if (millis() - this.deadTime > 2000) this.reset();
@@ -1474,28 +1482,38 @@ class ConceptoAnsiedad {
   }
   
   updateInner(fig) {
-    fig.x += fig.vx; fig.y += fig.vy;
+    fig.x += fig.vx; 
+    fig.y += fig.vy;
     
     let proporcion = fig.estilo === 1 ? 0.14 : 0.18; 
     let targetTam = this.b.tam * proporcion;
     fig.tam = lerp(fig.tam, max(0, targetTam), 0.25); 
     
-    let dx = fig.x - this.cx; let dy = fig.y - this.cy;
-    let distCenter = sqrt(dx*dx + dy*dy); let maxDist = (this.b.tam / 2) - (fig.tam / 2);
+    let dx = fig.x - this.cx; 
+    let dy = fig.y - this.cy;
+    let distCenter = sqrt(dx*dx + dy*dy); 
+    let maxDist = (this.b.tam / 2) - (fig.tam / 2);
     
     if (maxDist <= 0) {
-      fig.x = this.cx; fig.y = this.cy;
+      fig.x = this.cx; 
+      fig.y = this.cy;
     } else if (distCenter > maxDist) {
-      let nx = dx / distCenter; let ny = dy / distCenter;
-      fig.x = this.cx + nx * maxDist; fig.y = this.cy + ny * maxDist;
+      let nx = dx / distCenter; 
+      let ny = dy / distCenter;
+      fig.x = this.cx + nx * maxDist; 
+      fig.y = this.cy + ny * maxDist;
       
       let dot = fig.vx * nx + fig.vy * ny;
-      fig.vx -= 2 * dot * nx; fig.vy -= 2 * dot * ny;
+      fig.vx -= 2 * dot * nx; 
+      fig.vy -= 2 * dot * ny;
     }
     
     let speed = dist(0, 0, fig.vx, fig.vy);
     let targetSpeed = min(width, height) * 0.005;
-    if (speed > 0) { fig.vx = (fig.vx / speed) * targetSpeed; fig.vy = (fig.vy / speed) * targetSpeed; }
+    if (speed > 0) { 
+      fig.vx = (fig.vx / speed) * targetSpeed; 
+      fig.vy = (fig.vy / speed) * targetSpeed; 
+    }
   }
   
   display() {
@@ -1509,12 +1527,15 @@ class ConceptoAnsiedad {
   presionar(tx, ty) {
     if (this.fase === 0) {
       let d = dist(tx, ty, this.cx, this.cy);
-      if (d < this.b.tam / 2) { this.b.tam = min(this.tB * 2.5, this.b.tam + this.tB * 0.25); }
+      if (d < this.b.tam / 2) { 
+        this.b.tam = min(this.tB * 2.5, this.b.tam + this.tB * 0.25); 
+      }
     }
   }
-  arrastrar(tx, ty) {} soltar() {}
-}
 
+  arrastrar(tx, ty) {} 
+  soltar() {}
+}
 // --- CONCEPTO 9: EXPECTATIVA ---
 class ConceptoExpectativa {
   constructor() {
@@ -1580,7 +1601,21 @@ class ConceptoExpectativa {
 
   dibujarAzul(fig, offsetX, offsetY) {
     let tam = fig.tamBase * fig.escala;
-    push(); translate(fig.x + offsetX, fig.y + offsetY); fill(COLORES[1]); noStroke(); drawingContext.setLineDash([]); circle(0, 0, tam); pop();
+
+    // Opacidad reactiva al tamaño del círculo azul
+    let alpha = map(fig.escala, 0.3, fig.escalaMax, 290, 50, true);
+
+    push(); 
+    translate(fig.x + offsetX, fig.y + offsetY); 
+
+    let c = color(COLORES[1]);
+    c.setAlpha(alpha);
+
+    fill(c); 
+    noStroke(); 
+    drawingContext.setLineDash([]); 
+    circle(0, 0, tam); 
+    pop();
   }
 
   dibujarRojo(fig, offsetX, offsetY) {
