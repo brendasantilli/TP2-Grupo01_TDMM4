@@ -736,9 +736,9 @@ class FiguraEmpatia {
     this.tam = tam;
     this.tBase = tBase;
 
-    // Ángulo absoluto en grados. 0° sitúa la base horizontal abajo y la punta arriba.
+    // Ángulo absoluto en grados. 0° sitúa la base horizontal abajo y el vértice hacia arriba.
     this.angulo = anguloInicial;
-    this.esCentral = esCentral; // Define si es el ancla inmutable
+    this.esCentral = esCentral; // Define si es el ancla estática inmutable
 
     this.vx = this.esCentral ? 0 : random(-1.5, 1.5);
     this.vy = this.esCentral ? 0 : random(-1.5, 1.5);
@@ -747,19 +747,18 @@ class FiguraEmpatia {
     this.escala = 1.0;
     this.oscilando = !this.esCentral;
     this.offsetOscilacion = random(TWO_PI);
+    this.acoplada = this.esCentral; // Estado individual de sintonía y viaje al centro
   }
 
   update(isHarmonic) {
-    // La figura central permanece fija; las móviles derivan mientras no haya armonía
-    if (!this.esCentral && !isHarmonic) {
+    // Si es central o ya está acoplada/viajando al centro, no procesa física de deriva
+    if (!this.esCentral && !this.acoplada && !isHarmonic) {
       this.x += this.vx;
       this.y += this.vy;
 
-      // Fricción para estabilidad
       this.vx *= 0.98;
       this.vy *= 0.98;
 
-      // Impulso vital para mantener flujo orgánico
       let speed = dist(0, 0, this.vx, this.vy);
       if (speed < 0.5) {
         let ang = random(TWO_PI);
@@ -768,15 +767,17 @@ class FiguraEmpatia {
       }
     }
 
-    // Rebote elástico en los bordes del lienzo
-    let m = (this.tam * this.escala) / 2;
-    if (this.x < m || this.x > width - m) {
-      this.vx *= -1;
-      this.x = constrain(this.x, m, width - m);
-    }
-    if (this.y < m || this.y > height - m) {
-      this.vy *= -1;
-      this.y = constrain(this.y, m, height - m);
+    // Rebote elástico en los márgenes mientras no esté acoplada
+    if (!this.acoplada) {
+      let m = (this.tam * this.escala) / 2;
+      if (this.x < m || this.x > width - m) {
+        this.vx *= -1;
+        this.x = constrain(this.x, m, width - m);
+      }
+      if (this.y < m || this.y > height - m) {
+        this.vy *= -1;
+        this.y = constrain(this.y, m, height - m);
+      }
     }
   }
 
@@ -786,7 +787,7 @@ class FiguraEmpatia {
     translate(this.x, this.y);
 
     let anguloVisible = this.angulo;
-    if (this.oscilando && !this.esCentral) {
+    if (this.oscilando && !this.acoplada) {
       anguloVisible += sin(millis() * 0.002 + this.offsetOscilacion) * 12;
     }
 
@@ -797,25 +798,25 @@ class FiguraEmpatia {
     // Vértice superior en -h*(2/3) y base horizontal en h*(1/3)
     triangle(0, -h * (2 / 3), -this.tam / 2, h * (1 / 3), this.tam / 2, h * (1 / 3));
 
-    // Eje longitudinal constructivista orientado a lo alto
+    // Eje longitudinal constructivista vertical (|)
     stroke(26, 26, 26);
     strokeWeight(3);
     drawingContext.setLineDash([]);
     let yBase = h * (1 / 3);
     let yPunta = -h * (2 / 3);
-    let ext = h * 0.15; // Extensión saliente
+    let ext = h * 0.15; // Extensión saliente contenida
     line(0, yPunta - ext, 0, yBase + ext);
 
     pop();
   }
 
   tocando(tx, ty) {
-    if (this.esCentral) return false;
+    if (this.esCentral || this.acoplada) return false;
 
-    // Hitbox corporal
+    // Contacto sobre el cuerpo triangular
     if (dist(tx, ty, this.x, this.y) < (this.tam * this.escala) / 2) return true;
 
-    // Hitbox longitudinal a lo largo del eje
+    // Contacto sobre el eje longitudinal acortado
     let angleRad = radians(this.angulo - 90);
     let dirX = cos(angleRad);
     let dirY = sin(angleRad);
@@ -841,12 +842,12 @@ class ConceptoEmpatia {
   reset() {
     let cx = width / 2;
     let cy = height / 2;
-    let anguloVerticalEje = 0; // 0° sitúa la línea del eje vertical absoluta (|)
+    let anguloVerticalEje = 0; // 0° garantiza que la línea del eje quede vertical absoluta (|)
 
     this.figuras = [
       // Figura 0: Negro (Actor A) - Móvil
       new FiguraEmpatia(0, 1, width * 0.25, height * 0.30, this.tB * 0.85, this.tB, 50, false),
-      // Figura 1: Azul (Actor B) - Central estático de referencia
+      // Figura 1: Azul (Actor B) - Central estático inmutable
       new FiguraEmpatia(1, 0, cx, cy, this.tB, this.tB, anguloVerticalEje, true),
       // Figura 2: Rojo (Actor C) - Móvil
       new FiguraEmpatia(2, 2, width * 0.75, height * 0.70, this.tB * 1.10, this.tB, 135, false)
@@ -857,80 +858,58 @@ class ConceptoEmpatia {
   }
 
   update() {
-    let vel = 0.1; // Lerp del Presente
+    let vel = 0.1; // Lerp característico del Presente
+    let central = this.figuras[1];
+    let cx = central.x;
+    let cy = central.y;
 
-    // Ángulos normalizados a [0, 180) por simetría axial de la recta
-    let a0 = this.figuras[0].angulo % 180; if (a0 < 0) a0 += 180;
-    let aCentral = this.figuras[1].angulo % 180; if (aCentral < 0) aCentral += 180;
-    let a2 = this.figuras[2].angulo % 180; if (a2 < 0) a2 += 180;
+    let aCentral = central.angulo % 180;
+    if (aCentral < 0) aCentral += 180;
 
-    // Validación angular individual frente al eje vertical del centro (tolerancia <= 5°)
-    let m01 = min(abs(a0 - aCentral), 180 - abs(a0 - aCentral)) <= 5;
-    let m21 = min(abs(a2 - aCentral), 180 - abs(a2 - aCentral)) <= 5;
+    // 1. Evaluación y acople progresivo e independiente para cada figura
+    for (let f of this.figuras) {
+      if (f.esCentral) continue;
 
-    // Éxito colectivo: ambos satélites alineados con el centro
-    let empatiaLograda = (m01 && m21);
+      let aF = f.angulo % 180;
+      if (aF < 0) aF += 180;
 
-    // Congelar la oscilación cuando entran en sintonía con el eje
-    this.figuras[0].oscilando = !m01;
-    this.figuras[1].oscilando = false;
-    this.figuras[2].oscilando = !m21;
+      let difAngulo = min(abs(aF - aCentral), 180 - abs(aF - aCentral));
 
-    if (empatiaLograda) {
-      // --- RESOLUCIÓN ARMÓNICA (Apilamiento en el centro) ---
-      if (!this.isHarmonic) {
-        this.isHarmonic = true;
-        this.harmonicTimer = millis();
-      }
-
-      let cx = width / 2;
-      let cy = height / 2;
-
-      for (let f of this.figuras) {
+      // Si alcanza la orientación vertical (≤ 5°), se activa su acople de inmediato
+      if (difAngulo <= 5) {
+        f.acoplada = true;
         f.oscilando = false;
         f.vx = 0;
         f.vy = 0;
 
-        // Desplazamiento coordenado al centro
+        // Viaja de inmediato hacia el centro para apilarse sobre la base
         f.x = lerp(f.x, cx, vel);
         f.y = lerp(f.y, cy, vel);
 
         // Snap angular suave al ángulo del central
-        let targetAng = round((f.angulo - this.figuras[1].angulo) / 180) * 180 + this.figuras[1].angulo;
+        let targetAng = round((f.angulo - central.angulo) / 180) * 180 + central.angulo;
         f.angulo = lerp(f.angulo, targetAng, vel);
-
-        // Expansión a escala 1.3
-        f.escala = lerp(f.escala, 1.3, vel);
-      }
-
-      // Reinicio a los 3 segundos
-      if (millis() - this.harmonicTimer > 3000) {
-        this.reset();
-      }
-
-    } else {
-      // --- ESTADO ACTIVO: DERIVA Y REPULSIÓN MAGNÉTICA ---
-      this.isHarmonic = false;
-      this.harmonicTimer = 0;
-
-      for (let f of this.figuras) {
+      } else {
+        // Si no está acoplada, continúa flotando normalmente
+        f.acoplada = false;
         f.update(false);
         f.escala = lerp(f.escala, 1.0, vel);
       }
+    }
 
-      // Campo magnético de repulsión para pares que difieran > 5°
-      for (let i = 0; i < this.figuras.length; i++) {
-        for (let j = i + 1; j < this.figuras.length; j++) {
-          let fA = this.figuras[i];
-          let fB = this.figuras[j];
+    // 2. Fuerzas de Repulsión Dinámicas (solo activas para figuras libres/no acopladas)
+    for (let i = 0; i < this.figuras.length; i++) {
+      for (let j = i + 1; j < this.figuras.length; j++) {
+        let fA = this.figuras[i];
+        let fB = this.figuras[j];
 
+        // Solo hay repulsión si al menos una de las dos figuras está libre y fuera de eje
+        if (!fA.acoplada || !fB.acoplada) {
           let angA = fA.angulo % 180; if (angA < 0) angA += 180;
           let angB = fB.angulo % 180; if (angB < 0) angB += 180;
+          let alineadas = min(abs(angA - angB), 180 - abs(angA - angB)) <= 5;
 
-          let alineados = min(abs(angA - angB), 180 - abs(angA - angB)) <= 5;
-
-          // Si NO comparten orientación angular, se repelen al aproximarse
-          if (!alineados) {
+          if (!alineadas) {
             let d = dist(fA.x, fA.y, fB.x, fB.y);
             let umbral = (fA.tam + fB.tam) * 0.72;
 
@@ -939,12 +918,12 @@ class ConceptoEmpatia {
               let dirX = (fA.x - fB.x) / d;
               let dirY = (fA.y - fB.y) / d;
 
-              // El triángulo central permanece inmóvil; solo se aplican fuerzas a los móviles
-              if (!fA.esCentral) {
+              // Solo se empujan las figuras que no estén fijadas ni acopladas
+              if (!fA.esCentral && !fA.acoplada) {
                 fA.vx += dirX * fuerza;
                 fA.vy += dirY * fuerza;
               }
-              if (!fB.esCentral) {
+              if (!fB.esCentral && !fB.acoplada) {
                 fB.vx -= dirX * fuerza;
                 fB.vy -= dirY * fuerza;
               }
@@ -952,6 +931,32 @@ class ConceptoEmpatia {
           }
         }
       }
+    }
+
+    // 3. Validación de Empatía Global (los tres están alineados y en el centro)
+    let todosAlineados = this.figuras.every(f => f.acoplada);
+    let todosCercaDelCentro = this.figuras.every(f => dist(f.x, f.y, cx, cy) < 6);
+
+    if (todosAlineados && todosCercaDelCentro) {
+      if (!this.isHarmonic) {
+        this.isHarmonic = true;
+        this.harmonicTimer = millis();
+      }
+
+      // Expansión armónica conjunta en el centro
+      for (let f of this.figuras) {
+        f.x = lerp(f.x, cx, vel);
+        f.y = lerp(f.y, cy, vel);
+        f.escala = lerp(f.escala, 1.3, vel);
+      }
+
+      // Reinicio automático a los 3 segundos de sostener la armonía
+      if (millis() - this.harmonicTimer > 3000) {
+        this.reset();
+      }
+    } else {
+      this.isHarmonic = false;
+      this.harmonicTimer = 0;
     }
   }
 
@@ -973,7 +978,8 @@ class ConceptoEmpatia {
     if (this.isHarmonic) return;
 
     for (let f of this.figuras) {
-      if (f.esCentral) continue; // Triángulo central protegido contra arrastre y rotación
+      // Ignora la figura central y cualquier figura ya acoplada en viaje
+      if (f.esCentral || f.acoplada) continue;
 
       let t0 = touches.length > 0 ? touches[0] : null;
       let t1 = touches.length > 1 ? touches[1] : null;
@@ -991,7 +997,7 @@ class ConceptoEmpatia {
           f.lastTouchAngle = currentAngle;
         }
       }
-      // Un solo dedo táctil
+      // Touch con un solo punto
       else if (t0) {
         if (f.tocando(t0.x, t0.y)) {
           f.x += mouseX - pmouseX;
@@ -999,7 +1005,7 @@ class ConceptoEmpatia {
         }
         f.lastTouchAngle = null;
       }
-      // Mouse / Cursor
+      // Ratón / Mouse
       else {
         f.lastTouchAngle = null;
         if (mouseIsPressed && f.tocando(mouseX, mouseY)) {
@@ -1022,6 +1028,8 @@ class ConceptoEmpatia {
     }
   }
 }
+
+
 //
 //COLABORACIONNN
 class ConceptoColaboracion {
