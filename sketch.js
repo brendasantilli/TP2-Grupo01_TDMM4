@@ -727,84 +727,108 @@ class ConceptoIdentidad {
 
 // --- CONCEPTO 5: EMPATÍA ---
 class FiguraEmpatia {
-  constructor(c, e, x, y, tam, tBase, anguloInicial) {
-    this.colorIndex = c; this.estilo = e; this.x = x; this.y = y;
-    this.tam = tam; this.tBase = tBase; this.angulo = anguloInicial;
-    this.vx = random(-0.8, 0.8); this.vy = random(-0.8, 0.8); 
-    this.arrastrando = false; this.lastTouchAngle = null; 
-    this.floatSeedX = random(TWO_PI); this.floatSeedY = random(TWO_PI);
+  constructor(c, e, x, y, tam, tBase, anguloInicial, esCentral = false) {
+    this.colorIndex = c; // 0: Negro, 1: Azul, 2: Rojo
+    this.colorHex = COLORES[c];
+    this.estilo = e;
+    this.x = x;
+    this.y = y;
+    this.tam = tam;
+    this.tBase = tBase;
+
+    // Ángulo absoluto en grados. 0° sitúa la base horizontal abajo y la punta arriba.
+    this.angulo = anguloInicial;
+    this.esCentral = esCentral; // Define si es el ancla inmutable
+
+    this.vx = this.esCentral ? 0 : random(-1.5, 1.5);
+    this.vy = this.esCentral ? 0 : random(-1.5, 1.5);
+    this.lastTouchAngle = null;
+
     this.escala = 1.0;
-    this.vAngulo = 0; 
+    this.oscilando = !this.esCentral;
+    this.offsetOscilacion = random(TWO_PI);
   }
 
   update(isHarmonic) {
-    this.angulo += this.vAngulo;
-    this.vAngulo *= 0.9;
+    // La figura central permanece fija; las móviles derivan mientras no haya armonía
+    if (!this.esCentral && !isHarmonic) {
+      this.x += this.vx;
+      this.y += this.vy;
 
-    if (!isHarmonic && !this.arrastrando) {
-      this.x += this.vx; this.y += this.vy;
-      this.vx *= 0.98; this.vy *= 0.98;
+      // Fricción para estabilidad
+      this.vx *= 0.98;
+      this.vy *= 0.98;
 
+      // Impulso vital para mantener flujo orgánico
       let speed = dist(0, 0, this.vx, this.vy);
-      if (speed < 0.3) {
+      if (speed < 0.5) {
         let ang = random(TWO_PI);
         this.vx += cos(ang) * 0.1;
         this.vy += sin(ang) * 0.1;
       }
-    } 
+    }
 
-    let m = (this.tam * this.escala) / 2; 
-    if (this.x < m || this.x > width - m) { this.vx *= -1; this.x = constrain(this.x, m, width - m); } 
-    if (this.y < m || this.y > height - m) { this.vy *= -1; this.y = constrain(this.y, m, height - m); } 
+    // Rebote elástico en los bordes del lienzo
+    let m = (this.tam * this.escala) / 2;
+    if (this.x < m || this.x > width - m) {
+      this.vx *= -1;
+      this.x = constrain(this.x, m, width - m);
+    }
+    if (this.y < m || this.y > height - m) {
+      this.vy *= -1;
+      this.y = constrain(this.y, m, height - m);
+    }
   }
 
-   display() {
+  display() {
     push();
-    let offX = 0; let offY = 0;
-    if (!this.arrastrando) {
-      offX = sin(millis() * 0.001 + this.floatSeedX) * 10;
-      offY = cos(millis() * 0.0012 + this.floatSeedY) * 10;
+    aplicarEstilo(this.colorHex, this.estilo);
+    translate(this.x, this.y);
+
+    let anguloVisible = this.angulo;
+    if (this.oscilando && !this.esCentral) {
+      anguloVisible += sin(millis() * 0.002 + this.offsetOscilacion) * 12;
     }
 
-    translate(this.x + offX, this.y + offY); 
-    rotate(radians(this.angulo)); 
-    scale(this.escala); 
+    rotate(radians(anguloVisible));
+    scale(this.escala);
 
-    let h = this.tam * (sqrt(3)/2); 
-    let colHex = COLORES[this.colorIndex];
-    let startY = -h * (2/3);
+    let h = this.tam * (sqrt(3) / 2);
+    // Vértice superior en -h*(2/3) y base horizontal en h*(1/3)
+    triangle(0, -h * (2 / 3), -this.tam / 2, h * (1 / 3), this.tam / 2, h * (1 / 3));
 
-    // 1. Dibujo del polígono base según el estilo
-    if (this.estilo === 0) {
-      // AZUL: Lleno
-      fill(colHex); noStroke(); drawingContext.setLineDash([]); 
-      triangle(0, startY, -this.tam/2, h*(1/3), this.tam/2, h*(1/3)); 
-    } 
-    else if (this.estilo === 1) {
-      // NEGRO: Contorno
-      noFill(); stroke(colHex); strokeWeight(3); drawingContext.setLineDash([]); 
-      triangle(0, startY, -this.tam/2, h*(1/3), this.tam/2, h*(1/3)); 
-    } 
-    else if (this.estilo === 2) {
-      // ROJO: Punteado
-      noFill(); stroke(colHex); strokeWeight(3); drawingContext.setLineDash([15, 15]); 
-      triangle(0, startY, -this.tam/2, h*(1/3), this.tam/2, h*(1/3)); 
-    }
+    // Eje longitudinal constructivista orientado a lo alto
+    stroke(26, 26, 26);
+    strokeWeight(3);
+    drawingContext.setLineDash([]);
+    let yBase = h * (1 / 3);
+    let yPunta = -h * (2 / 3);
+    let ext = h * 0.15; // Extensión saliente
+    line(0, yPunta - ext, 0, yBase + ext);
 
-    // 2. Eje direccional: SIEMPRE negro, continuo y sobresaliendo de los límites
-    drawingContext.setLineDash([]); 
-    stroke(COLORES[0]); // Negro constructivista
-    strokeWeight(2); // Ligeramente más fino que el borde para mayor elegancia
-    
-    // Calculamos una extensión para que la línea salga del triángulo
-    let extension = h * 0.25; 
-    line(0, -h*(2/3) - extension, 0, h*(1/3) + extension);
-
-    pop(); 
+    pop();
   }
 
   tocando(tx, ty) {
-    return (dist(tx, ty, this.x, this.y) < (this.tam * this.escala) / 2 + 10);
+    if (this.esCentral) return false;
+
+    // Hitbox corporal
+    if (dist(tx, ty, this.x, this.y) < (this.tam * this.escala) / 2) return true;
+
+    // Hitbox longitudinal a lo largo del eje
+    let angleRad = radians(this.angulo - 90);
+    let dirX = cos(angleRad);
+    let dirY = sin(angleRad);
+    let h = this.tam * (sqrt(3) / 2);
+    let ext = (h / 2) * 1.15;
+    let wx = tx - this.x;
+    let wy = ty - this.y;
+    let proj = wx * dirX + wy * dirY;
+    let perpX = wx - proj * dirX;
+    let perpY = wy - proj * dirY;
+    let distPerp = dist(0, 0, perpX, perpY);
+
+    return abs(proj) < ext && distPerp < 35;
   }
 }
 
@@ -815,124 +839,132 @@ class ConceptoEmpatia {
   }
 
   reset() {
+    let cx = width / 2;
+    let cy = height / 2;
+    let anguloVerticalEje = 0; // 0° sitúa la línea del eje vertical absoluta (|)
+
     this.figuras = [
-      new FiguraEmpatia(0, 1, width * 0.2, height * 0.3, this.tB * 0.75, this.tB, 45),
-      new FiguraEmpatia(1, 0, width * 0.5, height * 0.75, this.tB * 1.20, this.tB, 135),
-      new FiguraEmpatia(2, 2, width * 0.75, height * 0.4, this.tB * 0.95, this.tB, 220)
+      // Figura 0: Negro (Actor A) - Móvil
+      new FiguraEmpatia(0, 1, width * 0.25, height * 0.30, this.tB * 0.85, this.tB, 50, false),
+      // Figura 1: Azul (Actor B) - Central estático de referencia
+      new FiguraEmpatia(1, 0, cx, cy, this.tB, this.tB, anguloVerticalEje, true),
+      // Figura 2: Rojo (Actor C) - Móvil
+      new FiguraEmpatia(2, 2, width * 0.75, height * 0.70, this.tB * 1.10, this.tB, 135, false)
     ];
+
     this.isHarmonic = false;
     this.harmonicTimer = 0;
   }
 
-  lerpAngle(a, b, t) {
-    let diff = b - a;
-    while (diff < -180) diff += 360;
-    while (diff > 180) diff -= 360;
-    return a + diff * t;
-  }
-
   update() {
-    let vel = 0.15; 
+    let vel = 0.1; // Lerp del Presente
 
-    let a0 = (this.figuras[0].angulo % 360 + 360) % 360; 
-    let a1 = (this.figuras[1].angulo % 360 + 360) % 360; 
-    let a2 = (this.figuras[2].angulo % 360 + 360) % 360;
+    // Ángulos normalizados a [0, 180) por simetría axial de la recta
+    let a0 = this.figuras[0].angulo % 180; if (a0 < 0) a0 += 180;
+    let aCentral = this.figuras[1].angulo % 180; if (aCentral < 0) aCentral += 180;
+    let a2 = this.figuras[2].angulo % 180; if (a2 < 0) a2 += 180;
 
-    let m01 = min(abs(a0 - a1), 360 - abs(a0 - a1)) <= 5; 
-    let m12 = min(abs(a1 - a2), 360 - abs(a1 - a2)) <= 5; 
-    let m02 = min(abs(a0 - a2), 360 - abs(a0 - a2)) <= 5; 
-    let empatiaLograda = (m01 && m12 && m02);
+    // Validación angular individual frente al eje vertical del centro (tolerancia <= 5°)
+    let m01 = min(abs(a0 - aCentral), 180 - abs(a0 - aCentral)) <= 5;
+    let m21 = min(abs(a2 - aCentral), 180 - abs(a2 - aCentral)) <= 5;
 
-    if (empatiaLograda) { 
-      if (!this.isHarmonic) { 
-        this.isHarmonic = true; 
-        this.harmonicTimer = millis(); 
+    // Éxito colectivo: ambos satélites alineados con el centro
+    let empatiaLograda = (m01 && m21);
+
+    // Congelar la oscilación cuando entran en sintonía con el eje
+    this.figuras[0].oscilando = !m01;
+    this.figuras[1].oscilando = false;
+    this.figuras[2].oscilando = !m21;
+
+    if (empatiaLograda) {
+      // --- RESOLUCIÓN ARMÓNICA (Apilamiento en el centro) ---
+      if (!this.isHarmonic) {
+        this.isHarmonic = true;
+        this.harmonicTimer = millis();
       }
-      
-      let cx = width / 2; 
-      let cy = height / 2; 
-      
+
+      let cx = width / 2;
+      let cy = height / 2;
+
       for (let f of this.figuras) {
-        f.x = lerp(f.x, cx, vel); 
+        f.oscilando = false;
+        f.vx = 0;
+        f.vy = 0;
+
+        // Desplazamiento coordenado al centro
+        f.x = lerp(f.x, cx, vel);
         f.y = lerp(f.y, cy, vel);
+
+        // Snap angular suave al ángulo del central
+        let targetAng = round((f.angulo - this.figuras[1].angulo) / 180) * 180 + this.figuras[1].angulo;
+        f.angulo = lerp(f.angulo, targetAng, vel);
+
+        // Expansión a escala 1.3
         f.escala = lerp(f.escala, 1.3, vel);
       }
-      
-      if (millis() - this.harmonicTimer > 3000) { this.reset(); }
-      
+
+      // Reinicio a los 3 segundos
+      if (millis() - this.harmonicTimer > 3000) {
+        this.reset();
+      }
+
     } else {
+      // --- ESTADO ACTIVO: DERIVA Y REPULSIÓN MAGNÉTICA ---
       this.isHarmonic = false;
       this.harmonicTimer = 0;
-      
+
       for (let f of this.figuras) {
         f.update(false);
         f.escala = lerp(f.escala, 1.0, vel);
       }
-      
-      if (m01) { this.unirPareja(this.figuras[0], this.figuras[1], vel); }
-      if (m12) { this.unirPareja(this.figuras[1], this.figuras[2], vel); }
-      if (m02) { this.unirPareja(this.figuras[0], this.figuras[2], vel); }
-      
-      let f0 = this.figuras[0]; let f1 = this.figuras[1]; let f2 = this.figuras[2];
-      let d01 = dist(f0.x, f0.y, f1.x, f1.y);
-      let d12 = dist(f1.x, f1.y, f2.x, f2.y);
-      let d02 = dist(f0.x, f0.y, f2.x, f2.y);
-      
-      let avgTam = (f0.tam + f1.tam + f2.tam) / 3;
-      if (d01 < avgTam * 0.6 && d12 < avgTam * 0.6 && d02 < avgTam * 0.6) {
-        let sSum = sin(radians(f0.angulo)) + sin(radians(f1.angulo)) + sin(radians(f2.angulo));
-        let cSum = cos(radians(f0.angulo)) + cos(radians(f1.angulo)) + cos(radians(f2.angulo));
-        let avgAng = degrees(atan2(sSum, cSum));
-        
-        f0.angulo = this.lerpAngle(f0.angulo, avgAng, 0.05);
-        f1.angulo = this.lerpAngle(f1.angulo, avgAng, 0.05);
-        f2.angulo = this.lerpAngle(f2.angulo, avgAng, 0.05);
-      } else {
-        for (let i = 0; i < this.figuras.length; i++) { 
-          for (let j = i + 1; j < this.figuras.length; j++) { 
-            let f1 = this.figuras[i]; let f2 = this.figuras[j]; 
-            let angI = (f1.angulo % 360 + 360) % 360; 
-            let angJ = (f2.angulo % 360 + 360) % 360; 
-            
-            let alineados = min(abs(angI - angJ), 360 - abs(angI - angJ)) <= 5;
-            
-            if (!alineados && dist(f1.x, f1.y, f2.x, f2.y) < (f1.tam + f2.tam) * 0.7) { 
-              let d = dist(f1.x, f1.y, f2.x, f2.y);
-              let umbral = (f1.tam + f2.tam) * 0.7;
-              if (d > 0) {
-                let fuerza = map(d, 0, umbral, 0.5, 0); 
-                let dirX = (f1.x - f2.x) / d; let dirY = (f1.y - f2.y) / d; 
-                
-                f1.vx += dirX * fuerza; f1.vy += dirY * fuerza; 
-                f2.vx -= dirX * fuerza; f2.vy -= dirY * fuerza;
+
+      // Campo magnético de repulsión para pares que difieran > 5°
+      for (let i = 0; i < this.figuras.length; i++) {
+        for (let j = i + 1; j < this.figuras.length; j++) {
+          let fA = this.figuras[i];
+          let fB = this.figuras[j];
+
+          let angA = fA.angulo % 180; if (angA < 0) angA += 180;
+          let angB = fB.angulo % 180; if (angB < 0) angB += 180;
+
+          let alineados = min(abs(angA - angB), 180 - abs(angA - angB)) <= 5;
+
+          // Si NO comparten orientación angular, se repelen al aproximarse
+          if (!alineados) {
+            let d = dist(fA.x, fA.y, fB.x, fB.y);
+            let umbral = (fA.tam + fB.tam) * 0.72;
+
+            if (d < umbral && d > 0) {
+              let fuerza = map(d, 0, umbral, 0.65, 0);
+              let dirX = (fA.x - fB.x) / d;
+              let dirY = (fA.y - fB.y) / d;
+
+              // El triángulo central permanece inmóvil; solo se aplican fuerzas a los móviles
+              if (!fA.esCentral) {
+                fA.vx += dirX * fuerza;
+                fA.vy += dirY * fuerza;
               }
-            } 
-          } 
+              if (!fB.esCentral) {
+                fB.vx -= dirX * fuerza;
+                fB.vy -= dirY * fuerza;
+              }
+            }
+          }
         }
       }
     }
-
-    for (let f of this.figuras) { 
-      let m = (f.tam * f.escala) / 2; 
-      f.x = constrain(f.x, m, width - m); 
-      f.y = constrain(f.y, m, height - m); 
-    }
-  }
-
-  unirPareja(f1, f2, vel) {
-    let cx = (f1.x + f2.x) / 2; let cy = (f1.y + f2.y) / 2;
-    f1.x = lerp(f1.x, cx, vel); f1.y = lerp(f1.y, cy, vel);
-    f2.x = lerp(f2.x, cx, vel); f2.y = lerp(f2.y, cy, vel);
-
-    let avgVx = (f1.vx + f2.vx) / 2; let avgVy = (f1.vy + f2.vy) / 2;
-    f1.vx = avgVx; f1.vy = avgVy;
-    f2.vx = avgVx; f2.vy = avgVy;
   }
 
   display() {
-    this.figuras[1].display();
-    this.figuras[2].display();
-    this.figuras[0].display();
+    // Orden estricto de capas (Z-index de atrás hacia adelante):
+    // 1. Atrás (fondo): Azul (Índice 1 - sólido)
+    // 2. Al medio: Negro (Índice 0 - contorno continuo)
+    // 3. Al frente: Rojo (Índice 2 - borde punteado)
+    let ordenZ = [1, 0, 2];
+
+    for (let idx of ordenZ) {
+      this.figuras[idx].display();
+    }
   }
 
   presionar() {}
@@ -941,74 +973,55 @@ class ConceptoEmpatia {
     if (this.isHarmonic) return;
 
     for (let f of this.figuras) {
-      let t0 = touches.length > 0 ? touches[0] : null; 
+      if (f.esCentral) continue; // Triángulo central protegido contra arrastre y rotación
+
+      let t0 = touches.length > 0 ? touches[0] : null;
       let t1 = touches.length > 1 ? touches[1] : null;
-      let rotThreshold = (f.tam * f.escala) * 0.15; 
-      
-      if (t0 && t1) { 
-        if (f.tocando(t0.x, t0.y) || f.tocando(t1.x, t1.y)) { 
-          f.arrastrando = true;
-          let currentAngle = degrees(atan2(t1.y - t0.y, t1.x - t0.x)); 
-          if (f.lastTouchAngle !== null) { 
-            let diff = currentAngle - f.lastTouchAngle; 
-            if (diff > 180) diff -= 360; 
-            if (diff < -180) diff += 360; 
-            f.angulo += diff; 
-            f.vAngulo = diff; 
-          } 
-          f.lastTouchAngle = currentAngle; 
-        } 
-      } 
-      else if (t0) { 
-        if (f.tocando(t0.x, t0.y)) { 
-          f.arrastrando = true;
-          if (dist(t0.x, t0.y, f.x, f.y) > rotThreshold) { 
-            let currentAngle = degrees(atan2(t0.y - f.y, t0.x - f.x));
-            if (f.lastTouchAngle !== null) {
-              let diff = currentAngle - f.lastTouchAngle;
-              if (diff > 180) diff -= 360;
-              if (diff < -180) diff += 360;
-              f.angulo += diff;
-              f.vAngulo = diff; 
-            }
-            f.lastTouchAngle = currentAngle;
-          } else { 
-            f.x += mouseX - pmouseX; f.y += mouseY - pmouseY; 
-            f.lastTouchAngle = null;
-          } 
-        } 
-      } 
-      else { 
-        f.lastTouchAngle = null; 
-        if (mouseIsPressed && f.tocando(mouseX, mouseY)) { 
-          f.arrastrando = true;
-          if (dist(mouseX, mouseY, f.x, f.y) > rotThreshold) { 
-            let currentAngle = degrees(atan2(mouseY - f.y, mouseX - f.x));
-            if (f.lastTouchAngle !== null) {
-              let diff = currentAngle - f.lastTouchAngle;
-              if (diff > 180) diff -= 360;
-              if (diff < -180) diff += 360;
-              f.angulo += diff;
-              f.vAngulo = diff; 
-            }
-            f.lastTouchAngle = currentAngle;
-          } else { 
-            f.x += mouseX - pmouseX; f.y += mouseY - pmouseY; 
-            f.lastTouchAngle = null;
-          } 
-        } 
+
+      // Multitouch (2 contactos: rotación y arrastre)
+      if (t0 && t1) {
+        if (f.tocando(t0.x, t0.y) || f.tocando(t1.x, t1.y)) {
+          let currentAngle = degrees(atan2(t1.y - t0.y, t1.x - t0.x));
+          if (f.lastTouchAngle !== null) {
+            let diff = currentAngle - f.lastTouchAngle;
+            if (diff > 180) diff -= 360;
+            if (diff < -180) diff += 360;
+            f.angulo += diff;
+          }
+          f.lastTouchAngle = currentAngle;
+        }
+      }
+      // Un solo dedo táctil
+      else if (t0) {
+        if (f.tocando(t0.x, t0.y)) {
+          f.x += mouseX - pmouseX;
+          f.y += mouseY - pmouseY;
+        }
+        f.lastTouchAngle = null;
+      }
+      // Mouse / Cursor
+      else {
+        f.lastTouchAngle = null;
+        if (mouseIsPressed && f.tocando(mouseX, mouseY)) {
+          if (dist(mouseX, mouseY, f.x, f.y) > (f.tam * f.escala) / 4) {
+            let a1 = atan2(mouseY - f.y, mouseX - f.x);
+            let a2 = atan2(pmouseY - f.y, pmouseX - f.x);
+            f.angulo += degrees(a1 - a2);
+          } else {
+            f.x += mouseX - pmouseX;
+            f.y += mouseY - pmouseY;
+          }
+        }
       }
     }
   }
 
   soltar() {
     for (let f of this.figuras) {
-      f.arrastrando = false;
       f.lastTouchAngle = null;
     }
   }
 }
-
 //
 //COLABORACIONNN
 class ConceptoColaboracion {
